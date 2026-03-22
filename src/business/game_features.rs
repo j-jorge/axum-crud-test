@@ -4,15 +4,13 @@ use super::*;
 
 pub async fn run_migration(
   transaction: &deadpool_postgres::Transaction<'_>,
-  to_version: i32
-) -> result::Result<()>
-{
-  if to_version == 1
-  {
+  to_version: i32,
+) -> result::Result<()> {
+  if to_version == 1 {
     transaction
       .batch_execute(
         "create table game_features \
-         (id text primary key, cost_in_coins integer)"
+         (id text primary key, cost_in_coins integer)",
       )
       .await?;
   }
@@ -20,29 +18,25 @@ pub async fn run_migration(
   return Ok(());
 }
 
-pub struct GameFeatures
-{
-  m_db: deadpool_postgres::Pool
+pub struct GameFeatures {
+  m_db: deadpool_postgres::Pool,
 }
 
-impl GameFeatures
-{
-  pub fn new(db: deadpool_postgres::Pool) -> GameFeatures
-  {
-    let result = GameFeatures {
-      m_db: db
-    };
+impl GameFeatures {
+  pub fn new(db: deadpool_postgres::Pool) -> GameFeatures {
+    let result = GameFeatures { m_db: db };
 
     return result;
   }
 
   /// Adds a new game feature with the given cost in coins, or update the
   /// price of a game feature if the ID already exists.
-  pub async fn update(&self, id: &str, cost_in_coins: i32)
-  -> result::Result<()>
-  {
-    if cost_in_coins < 0
-    {
+  pub async fn update(
+    &self,
+    id: &str,
+    cost_in_coins: i32,
+  ) -> result::Result<()> {
+    if cost_in_coins < 0 {
       return Err(error::Error::InvalidParameter);
     }
 
@@ -55,7 +49,7 @@ impl GameFeatures
            values ($1, $2) \
            on conflict (id) \
            do update set cost_in_coins = $2",
-        &[&id, &cost_in_coins]
+        &[&id, &cost_in_coins],
       )
       .await?;
 
@@ -65,9 +59,8 @@ impl GameFeatures
   /// Returns a map of game feature IDs as keys and their cost as coins as
   /// values.
   pub async fn list(
-    &self
-  ) -> result::Result<std::collections::HashMap<String, i32>>
-  {
+    &self,
+  ) -> result::Result<std::collections::HashMap<String, i32>> {
     return Ok(
       self
         .m_db
@@ -77,7 +70,7 @@ impl GameFeatures
         .await?
         .into_iter()
         .map(|row| (row.get(0), row.get(1)))
-        .collect()
+        .collect(),
     );
   }
 }

@@ -3,9 +3,8 @@ use crate::business;
 use axum::response::IntoResponse;
 
 pub fn extract_auth(
-  headers: &axum::http::header::HeaderMap
-) -> Option<&axum::http::header::HeaderValue>
-{
+  headers: &axum::http::header::HeaderMap,
+) -> Option<&axum::http::header::HeaderValue> {
   return headers.get(axum::http::header::AUTHORIZATION);
 }
 
@@ -18,19 +17,16 @@ pub fn extract_auth(
 async fn valid_admin_internal(
   leaders: &business::leads::Leaders,
   auth_header: Option<&axum::http::header::HeaderValue>,
-  allow_init: bool
-) -> business::result::Result<bool>
-{
+  allow_init: bool,
+) -> business::result::Result<bool> {
   if let Some(header) = auth_header
     && let Ok(token_str) = header.to_str()
   {
     return Ok(
       leaders.validate_token(&token_str).await?
-        || (allow_init && leaders.is_in_initialization_state().await?)
+        || (allow_init && leaders.is_in_initialization_state().await?),
     );
-  }
-  else
-  {
+  } else {
     // TODO: a log (but also check that the information is not in the
     // default logs)
     println!("no header");
@@ -43,9 +39,8 @@ async fn valid_admin_internal(
 /// the leader list.
 async fn valid_admin(
   leaders: &business::leads::Leaders,
-  auth_header: Option<&axum::http::header::HeaderValue>
-) -> business::result::Result<bool>
-{
+  auth_header: Option<&axum::http::header::HeaderValue>,
+) -> business::result::Result<bool> {
   return valid_admin_internal(&leaders, auth_header, false).await;
 }
 
@@ -53,9 +48,8 @@ async fn valid_admin(
 /// the leader list or else that there is no configured leader.
 async fn weak_valid_admin(
   leaders: &business::leads::Leaders,
-  auth_header: Option<&axum::http::header::HeaderValue>
-) -> business::result::Result<bool>
-{
+  auth_header: Option<&axum::http::header::HeaderValue>,
+) -> business::result::Result<bool> {
   return valid_admin_internal(&leaders, auth_header, true).await;
 }
 
@@ -63,9 +57,8 @@ async fn weak_valid_admin(
 pub async fn validate_request(
   leaders: &business::leads::Leaders,
   request: axum::extract::Request,
-  next: axum::middleware::Next
-) -> axum::response::Response<axum::body::Body>
-{
+  next: axum::middleware::Next,
+) -> axum::response::Response<axum::body::Body> {
   // I would have wanted to pass the request directly to
   // validate_admin but it does not work. See this discussion:
   //
@@ -78,13 +71,11 @@ pub async fn validate_request(
   let r: business::result::Result<bool> =
     valid_admin(&leaders, extract_auth(&request.headers())).await;
 
-  if r.is_err()
-  {
+  if r.is_err() {
     return (axum::http::StatusCode::INTERNAL_SERVER_ERROR).into_response();
   }
 
-  if r.unwrap()
-  {
+  if r.unwrap() {
     return next.run(request).await;
   }
 
@@ -96,19 +87,16 @@ pub async fn validate_request(
 pub async fn weak_validate_request(
   leaders: &business::leads::Leaders,
   request: axum::extract::Request,
-  next: axum::middleware::Next
-) -> axum::response::Response<axum::body::Body>
-{
+  next: axum::middleware::Next,
+) -> axum::response::Response<axum::body::Body> {
   let r: business::result::Result<bool> =
     weak_valid_admin(&leaders, extract_auth(&request.headers())).await;
 
-  if r.is_err()
-  {
+  if r.is_err() {
     return (axum::http::StatusCode::INTERNAL_SERVER_ERROR).into_response();
   }
 
-  if r.unwrap()
-  {
+  if r.unwrap() {
     return next.run(request).await;
   }
 

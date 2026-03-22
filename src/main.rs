@@ -12,9 +12,8 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 /// migration. But then, why rollback if we can just restore the
 /// backup?
 async fn migrate_database(
-  mut client: deadpool_postgres::Object
-) -> business::result::Result<()>
-{
+  mut client: deadpool_postgres::Object,
+) -> business::result::Result<()> {
   // We are keeping the current version of the schema into a
   // specific table which will have a single row (or none on
   // creation) with the version number.
@@ -26,14 +25,12 @@ async fn migrate_database(
     .query_opt("select value from meta_version", &[])
     .await
     .unwrap();
-  let mut table_version: i32 = match version_row
-  {
+  let mut table_version: i32 = match version_row {
     None => 0,
-    Some(r) => r.get(0)
+    Some(r) => r.get(0),
   };
 
-  if table_version == 0
-  {
+  if table_version == 0 {
     println!("Table version is {}, upgrading.", table_version);
     table_version += 1;
 
@@ -49,7 +46,7 @@ async fn migrate_database(
     // Update the schema version too, in the same transaction.
     t.execute(
       "insert into meta_version (value) values ($1);",
-      &[&table_version]
+      &[&table_version],
     )
     .await?;
 
@@ -62,8 +59,7 @@ async fn migrate_database(
 }
 
 #[tokio::main]
-async fn main()
-{
+async fn main() {
   // Tracing at app level. Use debug level for tower_http in order
   // to have a trace of all requests and their status codes.
   tracing_subscriber::registry()
@@ -71,8 +67,8 @@ async fn main()
       tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(
         |_| {
           format!("{}=debug,tower_http=debug", env!("CARGO_CRATE_NAME")).into()
-        }
-      )
+        },
+      ),
     )
     .with(tracing_subscriber::fmt::layer())
     .init();
@@ -93,19 +89,16 @@ async fn main()
   let pool: deadpool_postgres::Pool = deadpool_config
     .create_pool(
       Some(deadpool_postgres::Runtime::Tokio1),
-      tokio_postgres::NoTls
+      tokio_postgres::NoTls,
     )
     .unwrap();
 
-  match migrate_database(pool.get().await.unwrap()).await
-  {
-    Err(e) =>
-    {
+  match migrate_database(pool.get().await.unwrap()).await {
+    Err(e) => {
       eprintln!("Failed to migrate the database: {}", e);
       return;
     }
-    Ok(()) =>
-    {}
+    Ok(()) => {}
   };
 
   // I wish I could avoid ARC here as it models stuff floating around
@@ -126,7 +119,7 @@ async fn main()
 
   let certificates = axum_server::tls_rustls::RustlsConfig::from_pem_file(
     certificates_dir.join("localhost.crt"),
-    certificates_dir.join("localhost.key")
+    certificates_dir.join("localhost.key"),
   )
   .await
   .unwrap();
@@ -135,7 +128,7 @@ async fn main()
   let router = axum::Router::new()
     .nest(
       "/game-features",
-      webapi::game_features::route(leads.clone(), game_features)
+      webapi::game_features::route(leads.clone(), game_features),
     )
     .nest("/leads", webapi::leads::route(leads))
     .layer(tower_http::trace::TraceLayer::new_for_http());
