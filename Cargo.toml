@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+anyhow = "1.0"
 axum = "0.8"
 axum-server = { version = "0.8", features = ["tls-rustls"] }
 deadpool-postgres = "0.14"

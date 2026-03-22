@@ -1,6 +1,7 @@
 mod business;
 mod webapi;
 
+use anyhow::{Context, Result};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 /// Update the tables to match the state required by the current code.
@@ -59,7 +60,7 @@ async fn migrate_database(
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
   // Tracing at app level. Use debug level for tower_http in order
   // to have a trace of all requests and their status codes.
   tracing_subscriber::registry()
@@ -86,20 +87,16 @@ async fn main() {
   // Moreover, there is the question of losing the connection to the
   // database, even if it is on the same host. The pool will handle
   // that.
-  let pool: deadpool_postgres::Pool = deadpool_config
+  let pool = deadpool_config
     .create_pool(
       Some(deadpool_postgres::Runtime::Tokio1),
       tokio_postgres::NoTls,
     )
-    .unwrap();
+    .context("failed to create Postgres connection pool")?;
 
-  match migrate_database(pool.get().await.unwrap()).await {
-    Err(e) => {
-      eprintln!("Failed to migrate the database: {}", e);
-      return;
-    }
-    Ok(()) => {}
-  };
+  migrate_database(pool.get().await.unwrap())
+    .await
+    .context("failed to migrate the database: {}")?;
 
   // I wish I could avoid ARC here as it models stuff floating around
   // in memory until it becomes unreferenced. By definition I can't
@@ -122,7 +119,7 @@ async fn main() {
     certificates_dir.join("localhost.key"),
   )
   .await
-  .unwrap();
+  .context("failed to init RustlsConfig")?;
 
   // Register the web services.
   let router = axum::Router::new()
@@ -138,5 +135,6 @@ async fn main() {
   axum_server::bind_rustls(address, certificates)
     .serve(router.into_make_service())
     .await
-    .unwrap();
+    .context("error during server run")?;
+  Ok(())
 }
