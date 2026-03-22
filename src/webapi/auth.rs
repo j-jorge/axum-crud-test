@@ -23,7 +23,7 @@ async fn valid_admin_internal(
     && let Ok(token_str) = header.to_str()
   {
     return Ok(
-      leaders.validate_token(&token_str).await?
+      leaders.validate_token(token_str).await?
         || (allow_init && leaders.is_in_initialization_state().await?),
     );
   } else {
@@ -41,7 +41,7 @@ async fn valid_admin(
   leaders: &business::leads::Leaders,
   auth_header: Option<&axum::http::header::HeaderValue>,
 ) -> business::result::Result<bool> {
-  return valid_admin_internal(&leaders, auth_header, false).await;
+  return valid_admin_internal(leaders, auth_header, false).await;
 }
 
 /// Check that the token in the authorization header is an element of
@@ -50,7 +50,7 @@ async fn weak_valid_admin(
   leaders: &business::leads::Leaders,
   auth_header: Option<&axum::http::header::HeaderValue>,
 ) -> business::result::Result<bool> {
-  return valid_admin_internal(&leaders, auth_header, true).await;
+  return valid_admin_internal(leaders, auth_header, true).await;
 }
 
 /// Middleware to validate that the request comes from a leader.
@@ -69,7 +69,7 @@ pub async fn validate_request(
   // since I need the request for the call to next.run() below, so I
   // extract the authorization header here.
   let r: business::result::Result<bool> =
-    valid_admin(&leaders, extract_auth(&request.headers())).await;
+    valid_admin(leaders, extract_auth(request.headers())).await;
 
   if r.is_err() {
     return (axum::http::StatusCode::INTERNAL_SERVER_ERROR).into_response();
@@ -90,7 +90,7 @@ pub async fn weak_validate_request(
   next: axum::middleware::Next,
 ) -> axum::response::Response<axum::body::Body> {
   let r: business::result::Result<bool> =
-    weak_valid_admin(&leaders, extract_auth(&request.headers())).await;
+    weak_valid_admin(leaders, extract_auth(request.headers())).await;
 
   if r.is_err() {
     return (axum::http::StatusCode::INTERNAL_SERVER_ERROR).into_response();
