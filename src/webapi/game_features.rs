@@ -59,8 +59,8 @@ pub fn route(
   game_features: std::sync::Arc<business::game_features::GameFeatures>,
 ) -> axum::Router {
   let state = ServiceState {
-    leaders: leaders,
-    game_features: game_features,
+    leaders,
+    game_features,
   };
 
   return axum::Router::new()
