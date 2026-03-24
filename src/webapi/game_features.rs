@@ -1,20 +1,21 @@
 use crate::business;
-
-// TODO: It's already in leads.rs. Factorize.
-fn internal_error<E>(_error: E) -> (axum::http::StatusCode, String)
-{
-  // TODO: log the error.
-  return (
-    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-    String::from("Internal server error")
-  );
-}
+use crate::webapi::auth;
 
 #[derive(Clone)]
 pub struct ServiceState
 {
   leaders: std::sync::Arc<business::leads::Leaders>,
   game_features: std::sync::Arc<business::game_features::GameFeatures>
+}
+
+/// Middleware to validate that the request comes from a leader.
+async fn auth(
+  state_handle: axum::extract::State<ServiceState>,
+  request: axum::extract::Request,
+  next: axum::middleware::Next
+) -> axum::response::Response<axum::body::Body>
+{
+  return auth::validate_request(&state_handle.0.leaders, request, next).await;
 }
 
 #[derive(serde::Deserialize)]
@@ -31,17 +32,14 @@ async fn update(
   axum::response::Json(request): axum::response::Json<
     GameFeaturesUpdateRequest
   >
-) -> Result<(), (axum::http::StatusCode, String)>
+) -> business::result::Result<()>
 {
-  // TODO: check the permissions.
-  let leaders: &business::leads::Leaders = &state_handle.0.leaders;
   let game_features: &business::game_features::GameFeatures =
     &state_handle.0.game_features;
 
   game_features
     .update(&request.id, request.cost_in_coins)
-    .await
-    .map_err(internal_error)?;
+    .await?;
 
   return Ok(());
 }
@@ -49,20 +47,15 @@ async fn update(
 /// List all game features and their prices.
 async fn list(
   state_handle: axum::extract::State<ServiceState>
-) -> Result<String, (axum::http::StatusCode, String)>
+) -> business::result::Result<String>
 {
   let game_features: &business::game_features::GameFeatures =
     &state_handle.0.game_features;
 
   let feature_list: std::collections::HashMap<String, i32> =
-    game_features.list().await.map_err(internal_error)?;
+    game_features.list().await?;
 
-  return Ok(
-    serde_json::to_string(
-      &serde_json::to_value(feature_list).map_err(internal_error)?
-    )
-    .map_err(internal_error)?
-  );
+  return Ok(serde_json::to_string(&serde_json::to_value(feature_list)?)?);
 }
 
 /// Configure all routes for this service.
@@ -78,6 +71,7 @@ pub fn route(
 
   return axum::Router::new()
     .route("/update", axum::routing::post(update))
+    .route_layer(axum::middleware::from_fn_with_state(state.clone(), auth))
     .route("/list", axum::routing::get(list))
     .with_state(state);
 }
