@@ -1,0 +1,63 @@
+name: Continuous integration
+
+on:
+  push:
+    branches-ignore:
+      - "wip*"
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+  RUSTDOCFLAGS: "-D warnings"
+
+jobs:
+  rust_check:
+    name: Rust code checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: clippy, rustfmt
+      - uses: actions/checkout@v6
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true # useful for don't rebuild dependencies on fix after failure
+      - name: "Cargo formatting"
+        if: ${{ always() }}
+        run: cargo fmt --all -- --check
+      - name: "Cargo clippy"
+        if: ${{ always() }}
+        run: cargo clippy --profile=test --locked
+      - name: "Cargo test"
+        if: ${{ always() }}
+        run: cargo test --locked
+      - name: "unused dependencies"
+        uses: bnjbvr/cargo-machete@main
+
+  typos_checks:
+    name: Typos check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check spelling of entire workspace
+        uses: crate-ci/typos@master
+
+  toml_checks:
+    name: Toml files checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: "Cargo.toml format"
+        if: ${{ always() }}
+        uses: gwen-lg/taplo-action@v1
+        with:
+          format: true
+          lint: false
+      - name: "Cargo.toml lint"
+        if: ${{ always() }}
+        uses: gwen-lg/taplo-action@v1
+        with:
+          format: false
+          lint: true
