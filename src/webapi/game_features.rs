@@ -55,7 +55,7 @@ async fn list(
   let feature_list: std::collections::HashMap<String, i32> =
     game_features.list().await?;
 
-  return Ok(serde_json::to_string(&serde_json::to_value(feature_list)?)?);
+  return Ok(serde_json::to_string(&feature_list)?);
 }
 
 /// Configure all routes for this service.
