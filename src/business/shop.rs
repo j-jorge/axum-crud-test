@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 use super::*;
 
 // The shop lists all products that can be purchased via the store.

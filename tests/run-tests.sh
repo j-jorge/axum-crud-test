@@ -3,26 +3,26 @@
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")"; pwd)"
-cd "$script_dir"
 
 # shellcheck source-path=SCRIPTDIR
-. ./colors.sh
+. "$script_dir"/colors.sh
 
 fail_count=0
 
 while read -r test_script
 do
-    echo -e "${green}[ RUN  ]$reset_color $test_script"
-
-    if ! "$test_script"
+    if ! "$test_script" "$@"
     then
         fail_count=$((fail_count + 1))
     fi
-done < <(find . -mindepth 2 -executable -name "*.sh")
+done < <(find "$script_dir" -mindepth 2 -executable -name "*.sh")
 
 if (( fail_count == 0 ))
 then
-    echo -e "${green}[ PASS ]$reset_color"
+    echo -e "${green}[======]$reset_color"
+    echo -e "${green}[ PASS ]$reset_color All tests passed."
 else
-    echo -e "${red}[ FAIL ]$reset_color"
+    echo -e "${red}[======]$reset_color $fail_count failures."
+    echo -e "${red}[ FAIL ]$reset_color $fail_count failures."
+    exit 1
 fi

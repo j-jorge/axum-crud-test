@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 use super::*;
 
 // A game feature is just an ID and an associated cost in coins.
