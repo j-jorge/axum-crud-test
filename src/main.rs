@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 mod business;
 mod webapi;
 
@@ -138,9 +139,12 @@ async fn main() -> Result<()> {
 
   // And finally, launch the server.
   let address: std::net::SocketAddr = "127.0.0.1:3000".parse().unwrap();
-  axum_server::bind_rustls(address, certificates)
-    .serve(router.into_make_service())
-    .await
-    .context("error during server run")?;
-  Ok(())
+  let service_future = axum_server::bind_rustls(address, certificates)
+    .serve(router.into_make_service());
+
+  println!("Starting the web services.");
+
+  service_future.await.context("error during server run")?;
+
+  return Ok(());
 }

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 use crate::business;
 
 impl axum::response::IntoResponse for business::error::Error {
