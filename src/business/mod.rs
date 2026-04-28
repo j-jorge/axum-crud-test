@@ -1,4 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 pub mod error;
 pub mod game_features;
 pub mod leads;
 pub mod result;
+pub mod shop;

@@ -23,16 +23,14 @@ jobs:
       - uses: actions/checkout@v6
       - uses: Swatinem/rust-cache@v2
         with:
-          cache-on-failure: true # useful for don't rebuild dependencies on fix after failure
+          # Useful for don't rebuild dependencies on fix after failure.
+          cache-on-failure: true
       - name: "Cargo formatting"
         if: ${{ always() }}
         run: cargo fmt --all -- --check
       - name: "Cargo clippy"
         if: ${{ always() }}
         run: cargo clippy --profile=test --locked
-      - name: "Cargo test"
-        if: ${{ always() }}
-        run: cargo test --locked
       - name: "unused dependencies"
         uses: bnjbvr/cargo-machete@main
 
@@ -61,3 +59,11 @@ jobs:
         with:
           format: false
           lint: true
+
+  custom_checks:
+    name: Custom check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check repository state
+        run: ./ci/repository-health.sh

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 mod business;
 mod webapi;
 
@@ -43,6 +44,7 @@ async fn migrate_database(
     // Ensure each service has the tables it needs.
     business::leads::run_migration(&t, table_version).await?;
     business::game_features::run_migration(&t, table_version).await?;
+    business::shop::run_migration(&t, table_version).await?;
 
     // Update the schema version too, in the same transaction.
     t.execute(
@@ -109,7 +111,11 @@ async fn main() -> Result<()> {
   let leads: std::sync::Arc<business::leads::Leaders> =
     std::sync::Arc::new(business::leads::Leaders::new(pool.clone()));
   let game_features: std::sync::Arc<business::game_features::GameFeatures> =
-    std::sync::Arc::new(business::game_features::GameFeatures::new(pool));
+    std::sync::Arc::new(business::game_features::GameFeatures::new(
+      pool.clone(),
+    ));
+  let shop: std::sync::Arc<business::shop::Shop> =
+    std::sync::Arc::new(business::shop::Shop::new(pool));
 
   // The certificates, to handle HTTPS. There will be no support for HTTP.
   let certificates_dir = std::path::PathBuf::from("certificates");
@@ -127,14 +133,18 @@ async fn main() -> Result<()> {
       "/game-features",
       webapi::game_features::route(leads.clone(), game_features),
     )
-    .nest("/leads", webapi::leads::route(leads))
+    .nest("/leads", webapi::leads::route(leads.clone()))
+    .nest("/shop", webapi::shop::route(leads, shop))
     .layer(tower_http::trace::TraceLayer::new_for_http());
 
   // And finally, launch the server.
   let address: std::net::SocketAddr = "127.0.0.1:3000".parse().unwrap();
-  axum_server::bind_rustls(address, certificates)
-    .serve(router.into_make_service())
-    .await
-    .context("error during server run")?;
-  Ok(())
+  let service_future = axum_server::bind_rustls(address, certificates)
+    .serve(router.into_make_service());
+
+  println!("Starting the web services.");
+
+  service_future.await.context("error during server run")?;
+
+  return Ok(());
 }

@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 use crate::business;
 use crate::webapi::auth;
+use crate::webapi::json_helper;
 
 #[derive(Clone)]
 pub struct ServiceState {
   leaders: std::sync::Arc<business::leads::Leaders>,
-  game_features: std::sync::Arc<business::game_features::GameFeatures>,
+  shop: std::sync::Arc<business::shop::Shop>,
 }
 
 /// Middleware to validate that the request comes from a leader.
@@ -18,51 +19,40 @@ async fn auth(
 }
 
 #[derive(serde::Deserialize)]
-struct GameFeaturesUpdateRequest {
-  id: String,
-  cost_in_coins: i32,
+struct ShopUpdateRequest {
+  #[serde(rename = "product-id")]
+  product_id: String,
+  coins: i32,
 }
 
-/// Set the price of a game feature, creating the item if it does not exist.
-/// This requires an administrator.
+/// Register a shop product and its reward, creating the item if it
+/// does not exist. This requires an administrator.
 async fn update(
   state_handle: axum::extract::State<ServiceState>,
-  axum::response::Json(request): axum::response::Json<
-    GameFeaturesUpdateRequest,
-  >,
+  axum::response::Json(request): axum::response::Json<ShopUpdateRequest>,
 ) -> business::result::Result<()> {
-  let game_features: &business::game_features::GameFeatures =
-    &state_handle.0.game_features;
+  let shop: &business::shop::Shop = &state_handle.0.shop;
 
-  game_features
-    .update(&request.id, request.cost_in_coins)
-    .await?;
+  shop.update(&request.product_id, request.coins).await?;
 
   return Ok(());
 }
 
-/// List all game features and their prices.
+/// List all shop products.
 async fn list(
   state_handle: axum::extract::State<ServiceState>,
 ) -> business::result::Result<String> {
-  let game_features: &business::game_features::GameFeatures =
-    &state_handle.0.game_features;
-
-  let feature_list: std::collections::HashMap<String, i32> =
-    game_features.list().await?;
-
-  return Ok(serde_json::to_string(&feature_list)?);
+  return Ok(serde_json::to_string(&json_helper::to_json(
+    &state_handle.0.shop.list().await?,
+  )?)?);
 }
 
 /// Configure all routes for this service.
 pub fn route(
   leaders: std::sync::Arc<business::leads::Leaders>,
-  game_features: std::sync::Arc<business::game_features::GameFeatures>,
+  shop: std::sync::Arc<business::shop::Shop>,
 ) -> axum::Router {
-  let state = ServiceState {
-    leaders,
-    game_features,
-  };
+  let state = ServiceState { leaders, shop };
 
   return axum::Router::new()
     .route("/update", axum::routing::post(update))

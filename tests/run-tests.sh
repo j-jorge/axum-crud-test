@@ -14,7 +14,7 @@ while read -r test_script
 do
     echo -e "${green}[ RUN  ]$reset_color $test_script"
 
-    if ! "$test_script"
+    if ! "$test_script" "$@"
     then
         fail_count=$((fail_count + 1))
     fi
@@ -25,4 +25,5 @@ then
     echo -e "${green}[ PASS ]$reset_color"
 else
     echo -e "${red}[ FAIL ]$reset_color"
+    exit 1
 fi

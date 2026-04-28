@@ -1,0 +1,43 @@
+name: Build and test
+
+on:
+  push:
+    branches-ignore:
+      - "wip*"
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+  RUSTDOCFLAGS: "-D warnings"
+
+jobs:
+  rust_check:
+    name: Build
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        build_type: [release, debug]
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: "Build"
+        # cargo does not accept --debug, so we can simply use
+        # matrix.build_type to drive the build type.
+        run: >
+          build_arg=--${{matrix.build_type}} ;
+          build_arg=${build_arg/--debug/} ;
+          cargo build --locked $build_arg
+      - name: "Cargo test"
+        # cargo does not accept --debug, so we can simply use
+        # matrix.build_type to drive the build type.
+        run: >
+          build_arg=--${{matrix.build_type}} ;
+          build_arg=${build_arg/--debug/} ;
+          cargo test --locked $build_arg
+      - name: "End to end tests"
+        run: >
+          ./create-certificates.sh ;
+          ./tests/run-tests.sh
+          --binary target/${{matrix.build_type}}/axum-crud-test
