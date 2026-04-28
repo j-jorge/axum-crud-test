@@ -57,7 +57,7 @@ cd "$test_functions_script_dir/../"
 
 kill_services()
 {
-    echo "Killing services."
+    echo "Killing services, server_pid='${server_pid:-}', container='${container_name:-}'."
     if [[ "${server_pid:-}" != "" ]]
     then
         kill -15 "$server_pid"
@@ -78,7 +78,7 @@ wait_poll_file()
     local f="$2"
     local regex="$3"
 
-    echo "Waiting for '$regex' in '$f'."
+    echo -e "${yellow}[ INFO ]$reset_color Waiting for '$regex' in '$f'."
 
     while (( try_count >= 1 ))
     do
@@ -91,7 +91,9 @@ wait_poll_file()
         sleep 1
     done
 
-    echo "Could not find pattern '$regex' in '$f':" >&2
+    echo -e \
+         "${red}[ FAIL ]$reset_color Could not find pattern '$regex' in '$f':" \
+         >&2
     cat "$f"
 
     fail_count=$((fail_count + 1))
