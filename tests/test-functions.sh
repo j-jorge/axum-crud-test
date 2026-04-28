@@ -101,6 +101,8 @@ wait_poll_file()
     return 1
 }
 
+set -x
+
 container_name="test-$(echo -n "$test_name" | tr -c 'a-zA-Z0-9_.\-' '.')"
 docker run --rm --name "$container_name" \
          --env POSTGRES_PASSWORD=postgres \
