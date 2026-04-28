@@ -77,6 +77,7 @@ wait_poll_file()
     local try_count="$1"
     local f="$2"
     local regex="$3"
+    local error_file="${4:-}"
 
     echo -e "${yellow}[ INFO ]$reset_color Waiting for '$regex' in '$f'."
 
@@ -96,6 +97,14 @@ wait_poll_file()
          >&2
     cat "$f"
 
+    if [[ -s "${error_file:-}" ]]
+    then
+        echo -e \
+             "${red}[ FAIL ]$reset_color Error file:" \
+             >&2
+        cat "$error_file"
+    fi
+
     fail_count=$((fail_count + 1))
 
     return 1
@@ -105,20 +114,28 @@ set -x
 
 container_name="test-$(echo -n "$test_name" | tr -c 'a-zA-Z0-9_.\-' '.')"
 docker run --rm --name "$container_name" \
-         --env POSTGRES_PASSWORD=postgres \
-         --publish 5432:5432 \
-         postgres:18 \
-         > "$tmp_dir"/postgres.out.txt \
-         2> "$tmp_dir"/postgres.err.txt \
-         &
-wait_poll_file 60 "$tmp_dir"/postgres.out.txt "ready for start up"
+       --env POSTGRES_PASSWORD=postgres \
+       --publish 5432:5432 \
+       postgres:18 \
+       > "$tmp_dir"/postgres.out.txt \
+       2> "$tmp_dir"/postgres.err.txt \
+    &
+
+wait_poll_file 60 \
+               "$tmp_dir"/postgres.out.txt \
+               "ready for start up" \
+               "$tmp_dir"/postgres.err.txt
 
 "$_server_binary" \
-      > "$tmp_dir"/server.out.txt \
-      2> "$tmp_dir"/server.err.txt \
+    > "$tmp_dir"/server.out.txt \
+    2> "$tmp_dir"/server.err.txt \
     &
+
 server_pid=$!
-wait_poll_file 60 "$tmp_dir"/server.out.txt 'Starting the web services'
+wait_poll_file 60 \
+               "$tmp_dir"/server.out.txt \
+               'Starting the web services' \
+               "$tmp_dir"/server.err.txt
 
 rm_tmp_dir()
 {
