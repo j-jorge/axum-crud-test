@@ -38,7 +38,7 @@ impl Leaders {
         .get()
         .await?
         .query(
-          "select exists (select * from leads where token = $1)",
+          "select exists (select token from leads where token = $1)",
           &[&token],
         )
         .await?[0]
@@ -54,7 +54,7 @@ impl Leaders {
       .m_db
       .get()
       .await?
-      .query("select exists (select * from leads)", &[])
+      .query("select exists (select token from leads)", &[])
       .await?[0]
       .get(0);
 
@@ -80,7 +80,7 @@ impl Leaders {
         .m_db
         .get()
         .await?
-        .query("select * from leads", &[])
+        .query("select token from leads", &[])
         .await?
         .into_iter()
         .map(|r| r.get(0))
