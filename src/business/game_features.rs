@@ -67,7 +67,7 @@ impl GameFeatures {
         .m_db
         .get()
         .await?
-        .query("select * from game_features", &[])
+        .query("select id, cost_in_coins from game_features", &[])
         .await?
         .into_iter()
         .map(|row| (row.get(0), row.get(1)))

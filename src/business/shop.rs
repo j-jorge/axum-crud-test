@@ -71,7 +71,7 @@ impl Shop {
         .m_db
         .get()
         .await?
-        .query("select * from shop", &[])
+        .query("select id, coins from shop", &[])
         .await?
         .into_iter()
         .map(|row| ShopProduct {
