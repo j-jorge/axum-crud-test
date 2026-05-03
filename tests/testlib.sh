@@ -26,6 +26,7 @@ _print_results()
     then
         echo -e "${red}[ FAIL ]$reset_color $test_name: script failed"
         fail_count=$((fail_count + 1))
+        return 1
     elif (( fail_count == 0 ))
     then
         echo -e "${green}[------]$reset_color"
@@ -33,6 +34,7 @@ _print_results()
     else
         echo -e "${red}[------]$reset_color"
         echo -e "${red}[ FAIL ]$reset_color $test_name"
+        return 1
     fi
 }
 
