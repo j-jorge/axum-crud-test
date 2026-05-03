@@ -42,6 +42,7 @@ async fn migrate_database(
     let t: deadpool_postgres::Transaction<'_> = client.transaction().await?;
 
     // Ensure each service has the tables it needs.
+    business::flat_client_config::run_migration(&t, table_version).await?;
     business::leads::run_migration(&t, table_version).await?;
     business::game_features::run_migration(&t, table_version).await?;
     business::shop::run_migration(&t, table_version).await?;
@@ -110,6 +111,11 @@ async fn main() -> Result<()> {
   // services to the web services otherwise, so there we go.
   let leads: std::sync::Arc<business::leads::Leaders> =
     std::sync::Arc::new(business::leads::Leaders::new(pool.clone()));
+  let flat_client_config: std::sync::Arc<
+    business::flat_client_config::FlatClientConfig,
+  > = std::sync::Arc::new(business::flat_client_config::FlatClientConfig::new(
+    pool.clone(),
+  ));
   let game_features: std::sync::Arc<business::game_features::GameFeatures> =
     std::sync::Arc::new(business::game_features::GameFeatures::new(
       pool.clone(),
@@ -129,6 +135,10 @@ async fn main() -> Result<()> {
 
   // Register the web services.
   let router = axum::Router::new()
+    .nest(
+      "/flat-client-config",
+      webapi::flat_client_config::route(leads.clone(), flat_client_config),
+    )
     .nest(
       "/game-features",
       webapi::game_features::route(leads.clone(), game_features),
