@@ -115,20 +115,35 @@ expect_eq()
         return
     fi
 
-    local expected
-    expected="$1"
-
-    local actual
-    actual="$2"
-
-    if [[ "$expected" = "$actual" ]]
+    if [[ "$1" = "$2" ]]
     then
-        echo -e "${green}[ PASS ]$reset_color '$2' = '$1'."
+        echo -e "${green}[ PASS ]$reset_color '$1' = '$2'."
     else
         fail_count=$((fail_count + 1))
-        echo -e "${red}[ FAIL ]$reset_color '$2' = '$1'."
-        echo "Expected: $expected"
-        echo "  Actual: $actual"
+        echo -e "${red}[ FAIL ]$reset_color '$1' is different from '$2'."
+    fi
+}
+
+# Check that the two arguments are lexicographically different from
+# each other. For example `expect_ne abc def` pass, `expect_ne abc
+# abc` fails.
+expect_ne()
+{
+    if (( $# != 2 ))
+    then
+        fail_count=$((fail_count + 1))
+        echo -e \
+             "${red}[ FAIL ]$reset_color Expected two arguments, got $#:" \
+             "$@"
+        return
+    fi
+
+    if [[ "$1" != "$2" ]]
+    then
+        echo -e "${green}[ PASS ]$reset_color '$2' != '$1'."
+    else
+        fail_count=$((fail_count + 1))
+        echo -e "${red}[ FAIL ]$reset_color '$2' != '$1'."
     fi
 }
 
