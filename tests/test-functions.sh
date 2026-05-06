@@ -115,6 +115,23 @@ _rm_tmp_dir()
 
 push_on_exit _rm_tmp_dir
 
+# Make sure we exit with a failure if the last executed command failed
+# unexpectedly. This may happen due to the set -eu flags, stopping the
+# scripts even though fail_count is zero. Without this function the
+# other trapped functions would override the exit code and the calling
+# script would not see the problem.
+_count_failure_on_script_error()
+{
+    local exit_code=$?
+
+    if (( fail_count == 0 )) && (( exit_code != 0 ))
+    then
+        fail_count=1
+    fi
+}
+
+push_on_exit _count_failure_on_script_error
+
 # Wait for a given file to contain the given regular expression, or up
 # to a given timeout. If the timeout is reached the function dumps the
 # content of the file as well as a provided error/second file, adds a
@@ -282,4 +299,3 @@ expect_post_error()
 {
     _expect_curl_error "$@" -X POST
 }
-

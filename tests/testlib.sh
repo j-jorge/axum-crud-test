@@ -48,7 +48,7 @@ _print_trap_command()
 }
 
 # Push a command to be called on exit. The command is the argument of
-# this function, it will be scheduled after all already registered
+# this function, it will be scheduled before all already registered
 # functions. For example `push_on_exit echo good; push_on_exit echo
 # bye` will print 'good' then, on the next line, 'bad'.
 push_on_exit()
