@@ -6,11 +6,13 @@ impl axum::response::IntoResponse for business::error::Error {
   /// client.
   fn into_response(self) -> axum::response::Response {
     tracing::error!("Internal error: {}", &self);
-    return (
-      axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-      String::from("Internal server error"),
-    )
-      .into_response();
+
+    return match self {
+      business::error::Error::InvalidParameter => {
+        axum::http::StatusCode::BAD_REQUEST.into_response()
+      }
+      _ => axum::http::StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+    };
   }
 }
 
