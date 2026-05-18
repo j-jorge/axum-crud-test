@@ -31,3 +31,10 @@ impl From<rand::rngs::SysError> for Error {
     return Error::Internal;
   }
 }
+
+impl<T> From<std::sync::PoisonError<std::sync::MutexGuard<'_, T>>> for Error {
+  fn from(e: std::sync::PoisonError<std::sync::MutexGuard<'_, T>>) -> Error {
+    tracing::error!("Mutex error: {}'", e);
+    return Error::Internal;
+  }
+}

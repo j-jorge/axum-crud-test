@@ -168,35 +168,30 @@ impl GameServers {
 
     // At this point we assume the server to be legit.
 
-    // TODO: report the error if lock() fails.
-    if let Ok(ref mut internals) = self.m_internals.lock() {
-      internals.remove_dead_servers();
+    let internals = &mut self.m_internals.lock()?;
+    internals.remove_dead_servers();
 
-      let removal_delay = internals.m_clean_up_delay;
-      let removal_date = std::time::Instant::now() + removal_delay;
+    let removal_delay = internals.m_clean_up_delay;
+    let removal_date = std::time::Instant::now() + removal_delay;
 
-      if let Some(ref mut info) =
-        internals.m_online_servers.iter_mut().find(|e| e.id == id)
-      {
-        info.host = host;
-        info.version = version;
-        info.protocol_version = protocol_version;
-        info.removal_date = removal_date;
-      } else {
-        internals.m_online_servers.push(OnlineServerInfo {
-          id,
-          host,
-          version,
-          protocol_version,
-          removal_date,
-        });
-      }
-
-      return Ok(removal_delay / 2);
+    if let Some(ref mut info) =
+      internals.m_online_servers.iter_mut().find(|e| e.id == id)
+    {
+      info.host = host;
+      info.version = version;
+      info.protocol_version = protocol_version;
+      info.removal_date = removal_date;
+    } else {
+      internals.m_online_servers.push(OnlineServerInfo {
+        id,
+        host,
+        version,
+        protocol_version,
+        removal_date,
+      });
     }
 
-    // TODO: return an error.
-    return Ok(std::time::Duration::from_mins(1));
+    return Ok(removal_delay / 2);
   }
 
   /// List all game servers, with their availability.
@@ -209,41 +204,35 @@ impl GameServers {
       )
       .await?;
 
-    // TODO: report the error if lock() fails.
-    if let Ok(ref mut internals) = self.m_internals.lock() {
-      internals.remove_dead_servers();
+    let internals = &mut self.m_internals.lock()?;
+    internals.remove_dead_servers();
 
-      let mut result = Vec::<GameServerInfo>::with_capacity(rows.len());
+    let mut result = Vec::<GameServerInfo>::with_capacity(rows.len());
 
-      for r in rows {
-        let id: String = r.get(0);
-        let mut info: Option<ServerDeclaredInfo> = None;
+    for r in rows {
+      let id: String = r.get(0);
+      let mut info: Option<ServerDeclaredInfo> = None;
 
-        if let Some(i) = internals.m_online_servers.iter().find(|e| e.id == id)
-        {
-          info = Some(ServerDeclaredInfo {
-            host: i.host.clone(),
-            version: i.version,
-            protocol_version: i.protocol_version,
-          });
-        }
-
-        let registration_date: std::time::SystemTime = r.get(3);
-        let last_seen: std::time::SystemTime = r.get(4);
-
-        result.push(GameServerInfo {
-          id,
-          token: r.get(1),
-          description: r.get(2),
-          registration_date: registration_date.into(),
-          last_seen: last_seen.into(),
-          info,
+      if let Some(i) = internals.m_online_servers.iter().find(|e| e.id == id) {
+        info = Some(ServerDeclaredInfo {
+          host: i.host.clone(),
+          version: i.version,
+          protocol_version: i.protocol_version,
         });
       }
-      return Ok(result);
-    }
 
-    // TODO: return error.
-    return Ok(vec![]);
+      let registration_date: std::time::SystemTime = r.get(3);
+      let last_seen: std::time::SystemTime = r.get(4);
+
+      result.push(GameServerInfo {
+        id,
+        token: r.get(1),
+        description: r.get(2),
+        registration_date: registration_date.into(),
+        last_seen: last_seen.into(),
+        info,
+      });
+    }
+    return Ok(result);
   }
 }
