@@ -5,10 +5,36 @@ use thiserror::Error;
 // many error types from the sub systems.
 #[derive(Debug, Error)]
 pub enum Error {
-  #[error("database error")]
-  DataBase(#[from] tokio_postgres::Error),
-  #[error("pool error")]
-  Pool(#[from] deadpool_postgres::PoolError),
-  #[error("invalid parameter")]
-  InvalidParameter,
+  #[error("Internal error")]
+  Internal,
+  #[error("Invalid parameter")]
+  BadParameter,
+}
+
+impl From<tokio_postgres::Error> for Error {
+  fn from(e: tokio_postgres::Error) -> Error {
+    tracing::error!("tokio_postgres::Error: {}'", e);
+    return Error::Internal;
+  }
+}
+
+impl From<deadpool_postgres::PoolError> for Error {
+  fn from(e: deadpool_postgres::PoolError) -> Error {
+    tracing::error!("deadpool_postgres::PoolError: {}'", e);
+    return Error::Internal;
+  }
+}
+
+impl From<rand::rngs::SysError> for Error {
+  fn from(e: rand::rngs::SysError) -> Error {
+    tracing::error!("rand::rngs::SysError: {}'", e);
+    return Error::Internal;
+  }
+}
+
+impl<T> From<std::sync::PoisonError<std::sync::MutexGuard<'_, T>>> for Error {
+  fn from(e: std::sync::PoisonError<std::sync::MutexGuard<'_, T>>) -> Error {
+    tracing::error!("Mutex error: {}'", e);
+    return Error::Internal;
+  }
 }
